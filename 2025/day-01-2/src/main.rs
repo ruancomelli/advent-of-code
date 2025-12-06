@@ -21,11 +21,8 @@ fn main() {
     for line in reader.lines() {
         let line = line.expect("Failed to read line");
         let rotation = parse_rotation(&line).expect("Failed to parse line");
-        let new_position = pointer + rotation;
-        let current_group = calculate_group_for_pointer(pointer, args.size as i32, rotation);
-        let new_group = calculate_group_for_pointer(new_position, args.size as i32, rotation);
-        password += (new_group - current_group).abs();
-        pointer = new_position.rem_euclid(args.size as i32);
+        password += count_zero_clicks(pointer, args.size as i32, rotation).abs();
+        pointer = (pointer + rotation).rem_euclid(args.size as i32);
     }
     println!("Password: {}", password);
 }
@@ -40,6 +37,12 @@ fn parse_rotation(line: &str) -> Result<i32, String> {
     } else {
         Err("Invalid direction".to_string())
     }
+}
+
+fn count_zero_clicks(pointer: i32, size: i32, rotation: i32) -> i32 {
+    let previous_group = calculate_group_for_pointer(pointer, size, rotation);
+    let new_group = calculate_group_for_pointer(pointer + rotation, size, rotation);
+    (new_group - previous_group).abs()
 }
 
 /// Calculates the group for a given pointer position, size, and rotation.
@@ -86,18 +89,8 @@ mod test {
         let expected_passwords = vec![1, 1, 2, 2, 3, 4, 4, 5, 5, 6];
         for (line, expected_password) in rotations.into_iter().zip(expected_passwords.into_iter()) {
             let rotation = parse_rotation(line).unwrap();
-            let new_position = pointer + rotation;
-            let previous_group =
-                (if rotation < 0 { pointer - 1 } else { pointer }).div_euclid(size as i32);
-            let new_group = (if rotation < 0 {
-                new_position - 1
-            } else {
-                new_position
-            })
-            .div_euclid(size as i32);
-            let new_password = (new_group - previous_group).abs();
-            password += new_password;
-            pointer = new_position.rem_euclid(size as i32);
+            password += count_zero_clicks(pointer, size, rotation);
+            pointer = (pointer + rotation).rem_euclid(size as i32);
             assert_eq!(password, expected_password);
         }
     }
